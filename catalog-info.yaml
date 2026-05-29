@@ -1,0 +1,14 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: rest-api
+  description: FastAPI REST API service
+  annotations:
+    argocd/app-name: rest-api
+    backstage.io/kubernetes-id: rest-api
+    backstage.io/kubernetes-namespace: rest-api
+    github.com/project-slug: bugbiteme/rest-api
+spec:
+  type: service
+  lifecycle: experimental
+  owner: user:default/bugbiteme
