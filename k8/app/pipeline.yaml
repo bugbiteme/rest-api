@@ -1,14 +1,12 @@
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
+  name: rest-api
+  namespace: rest-api
   labels:
     app.kubernetes.io/instance: rest-api
     app.kubernetes.io/name: rest-api
-    operator.tekton.dev/operand-name: openshift-pipelines-addons
-    pipeline.openshift.io/strategy: docker
-    pipeline.openshift.io/type: kubernetes
-  name: rest-api
-  namespace: rest-api
+    backstage.io/kubernetes-id: rest-api
 spec:
   params:
   - default: rest-api
@@ -17,7 +15,7 @@ spec:
   - default: https://github.com/bugbiteme/rest-api.git
     name: GIT_REPO
     type: string
-  - default: ""
+  - default: main
     name: GIT_REVISION
     type: string
   - default: image-registry.openshift-image-registry.svc:5000/rest-api/rest-api
@@ -26,6 +24,14 @@ spec:
   - default: .
     name: PATH_CONTEXT
     type: string
+  - default: bugbiteme
+    name: GIT_USER_NAME
+    type: string
+  - default: leon.s.levy@gmail.com
+    name: GIT_USER_EMAIL
+    type: string
+  workspaces:
+  - name: workspace
   tasks:
   - name: fetch-repository
     params:
@@ -49,6 +55,7 @@ spec:
     workspaces:
     - name: output
       workspace: workspace
+
   - name: build
     params:
     - name: IMAGE
@@ -71,20 +78,81 @@ spec:
     workspaces:
     - name: source
       workspace: workspace
-  - name: deploy
+
+  - name: update-deployment
     params:
-    - name: SCRIPT
-      value: oc rollout status deploy/$(params.APP_NAME)
+    - name: IMAGE_NAME
+      value: $(params.IMAGE_NAME)
+    - name: IMAGE_DIGEST
+      value: $(tasks.build.results.IMAGE_DIGEST)
     runAfter:
     - build
-    taskRef:
+    taskSpec:
       params:
-      - name: kind
-        value: task
-      - name: name
-        value: openshift-client
-      - name: namespace
-        value: openshift-pipelines
-      resolver: cluster
-  workspaces:
-  - name: workspace
+      - name: IMAGE_NAME
+        type: string
+      - name: IMAGE_DIGEST
+        type: string
+      steps:
+      - name: update-image
+        image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+        workingDir: $(workspaces.source.path)
+        script: |
+          #!/bin/sh
+          set -e
+          NEW_IMAGE="$(params.IMAGE_NAME)@$(params.IMAGE_DIGEST)"
+          echo "Updating image to: $NEW_IMAGE"
+          sed -i "s|image:.*rest-api.*|image: $NEW_IMAGE|g" k8/gitops/deployment.yaml
+          echo "Updated deployment.yaml:"
+          cat k8/gitops/deployment.yaml
+      workspaces:
+      - name: source
+    workspaces:
+    - name: source
+      workspace: workspace
+
+  - name: commit-and-push
+    params:
+    - name: GIT_USER_NAME
+      value: $(params.GIT_USER_NAME)
+    - name: GIT_USER_EMAIL
+      value: $(params.GIT_USER_EMAIL)
+    - name: GIT_REPO
+      value: $(params.GIT_REPO)
+    runAfter:
+    - update-deployment
+    taskSpec:
+      params:
+      - name: GIT_USER_NAME
+        type: string
+      - name: GIT_USER_EMAIL
+        type: string
+      - name: GIT_REPO
+        type: string
+      steps:
+      - name: commit-push
+        image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+        script: |
+          #!/bin/sh
+          set -e
+          microdnf install -y git
+          cd $(workspaces.source.path)
+          git config user.name "$(params.GIT_USER_NAME)"
+          git config user.email "$(params.GIT_USER_EMAIL)"
+          git config --global --add safe.directory $(workspaces.source.path)
+          REPO_URL=$(echo "$(params.GIT_REPO)" | sed 's|https://|https://'"$GITHUB_TOKEN"'@|')
+          git remote set-url origin $REPO_URL
+          git add k8/gitops/deployment.yaml
+          git commit -m "chore: update image digest [skip ci]"
+          git push origin HEAD:main
+        env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: token
+      workspaces:
+      - name: source
+    workspaces:
+    - name: source
+      workspace: workspace

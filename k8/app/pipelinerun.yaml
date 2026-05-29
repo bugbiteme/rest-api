@@ -1,21 +1,15 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
-  annotations:
-    chains.tekton.dev/signed: "true"
-    pipeline.openshift.io/started-by: kube:admin
-    results.tekton.dev/record: rest-api/results/08b7d70d-4c20-4c6c-98d4-241193b333e1/records/08b7d70d-4c20-4c6c-98d4-241193b333e1
-    results.tekton.dev/result: rest-api/results/08b7d70d-4c20-4c6c-98d4-241193b333e1
-    results.tekton.dev/stored: "true"
+  generateName: rest-api-
+  namespace: rest-api
   labels:
     app.kubernetes.io/instance: rest-api
     app.kubernetes.io/name: rest-api
-    operator.tekton.dev/operand-name: openshift-pipelines-addons
+    backstage.io/kubernetes-id: rest-api
     pipeline.openshift.io/strategy: docker
     pipeline.openshift.io/type: kubernetes
     tekton.dev/pipeline: rest-api
-  name: rest-api
-  namespace: rest-api
 spec:
   params:
   - name: APP_NAME
@@ -23,11 +17,15 @@ spec:
   - name: GIT_REPO
     value: https://github.com/bugbiteme/rest-api.git
   - name: GIT_REVISION
-    value: ""
+    value: main
   - name: IMAGE_NAME
     value: image-registry.openshift-image-registry.svc:5000/rest-api/rest-api
   - name: PATH_CONTEXT
     value: .
+  - name: GIT_USER_NAME
+    value: bugbiteme
+  - name: GIT_USER_EMAIL
+    value: leon.s.levy@gmail.com
   pipelineRef:
     name: rest-api
   taskRunTemplate:
