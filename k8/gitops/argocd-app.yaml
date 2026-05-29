@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rest-api
+  namespace: rhdh-gitops
+  labels:
+    app.kubernetes.io/name: rest-api
+    backstage.io/kubernetes-id: rest-api
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/bugbiteme/rest-api.git
+    targetRevision: main
+    path: k8/gitops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rest-api
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
