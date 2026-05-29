@@ -30,7 +30,7 @@ spec:
         backstage.io/kubernetes-id: rest-api
     spec:
       containers:
-      - image: image-registry.openshift-image-registry.svc:5000/rest-api/rest-api@sha256:c1b4bbfc45a7bba3dcbdd5494f5e61b8a67a1f12f8037b0bc210e8189f839ab1
+      - image: image-registry.openshift-image-registry.svc:5000/rest-api/rest-api@sha256:62bfdb8ba4c5271596c6d2edd3f221153a876006975bb224337e574dc77cf53a
         imagePullPolicy: Always
         name: rest-api
         ports:
