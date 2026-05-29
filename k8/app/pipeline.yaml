@@ -96,7 +96,7 @@ spec:
       steps:
       - name: update-image
         image: registry.access.redhat.com/ubi9/ubi-minimal:latest
-        workingDir: $(workspaces.source.path)
+        workingDir: /workspace/source
         script: |
           #!/bin/sh
           set -e
@@ -132,14 +132,14 @@ spec:
       steps:
       - name: commit-push
         image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+        workingDir: /workspace/source
         script: |
           #!/bin/sh
           set -e
           microdnf install -y git
-          cd $(workspaces.source.path)
           git config user.name "$(params.GIT_USER_NAME)"
           git config user.email "$(params.GIT_USER_EMAIL)"
-          git config --global --add safe.directory $(workspaces.source.path)
+          git config --global --add safe.directory /workspace/source
           REPO_URL=$(echo "$(params.GIT_REPO)" | sed 's|https://|https://'"$GITHUB_TOKEN"'@|')
           git remote set-url origin $REPO_URL
           git add k8/gitops/deployment.yaml
