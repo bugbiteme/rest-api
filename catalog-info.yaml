@@ -8,6 +8,7 @@ metadata:
     backstage.io/kubernetes-id: rest-api
     backstage.io/kubernetes-namespace: rest-api
     github.com/project-slug: bugbiteme/rest-api
+    janus-idp.io/tekton: rest-api
 spec:
   type: service
   lifecycle: experimental
